@@ -40,6 +40,7 @@ export function parseDsl(input: string) {
       
       nodes.push({
         id,
+        type: 'custom',
         data: { label: id, icon },
         position: { x: 0, y: 0 } // required before layout
       });

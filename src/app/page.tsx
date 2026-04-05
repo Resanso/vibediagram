@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { ReactFlow, Controls, Background, applyNodeChanges, applyEdgeChanges, NodeChange, EdgeChange, Node, Edge } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { parseDsl } from '@/utils/parser';
 import { getLayoutedElements } from '@/utils/layout';
+import CustomNode from '@/components/CustomNode';
 
 export default function Home() {
+  const nodeTypes = useMemo(() => ({ custom: CustomNode }), []);
+
   const [dsl, setDsl] = useState(`User [user]
 Web Interface [monitor]
 Backend API [server]
@@ -68,6 +71,7 @@ Backend API -> Database : Query Data`);
         <ReactFlow
           nodes={nodes}
           edges={edges}
+          nodeTypes={nodeTypes}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           fitView

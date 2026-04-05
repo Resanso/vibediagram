@@ -5,8 +5,8 @@ export function getLayoutedElements(nodes: Node[], edges: Edge[], direction = 'T
   const dagreGraph = new dagre.graphlib.Graph();
   dagreGraph.setDefaultEdgeLabel(() => ({}));
 
-  const nodeWidth = 172;
-  const nodeHeight = 36;
+  const nodeWidth = 200;
+  const nodeHeight = 58;
 
   dagreGraph.setGraph({ rankdir: direction });
 
