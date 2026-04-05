@@ -29,6 +29,19 @@ export async function exportToPng(nodes: Node[], elementId?: string) {
       zoom: 1
     };
 
+    // --- FIX FOR HTML-TO-IMAGE BUG (SAFARI / BROWSER SVG ENGINE) ---
+    // Sometimes <rect className="react-flow__edge-textbg"> renders as black boxes because
+    // html-to-image fails to compute CSS variables or the stylesheets inline.
+    // To safely bypass this, we force physical hex-colors into the inline style & attribute temporarily.
+    const edgeTextBgs = element.querySelectorAll<SVGRectElement>('.react-flow__edge-textbg');
+    const originalFills = Array.from(edgeTextBgs).map(el => el.getAttribute('fill'));
+    const originalInlineFills = Array.from(edgeTextBgs).map(el => el.style.fill);
+
+    edgeTextBgs.forEach(el => {
+      el.setAttribute('fill', '#ffffff');
+      el.style.fill = '#ffffff';
+    });
+
     const dataUrl = await toPng(element, {
       backgroundColor: "#ffffff",
       quality: 1,
@@ -41,6 +54,15 @@ export async function exportToPng(nodes: Node[], elementId?: string) {
         transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
         transformOrigin: "top left",
       }
+    });
+
+    // --- RESTORE DOM STATE ---
+    edgeTextBgs.forEach((el, index) => {
+      const origFill = originalFills[index];
+      if (origFill) el.setAttribute('fill', origFill);
+      else el.removeAttribute('fill');
+      
+      el.style.fill = originalInlineFills[index];
     });
 
     const link = document.createElement("a");
