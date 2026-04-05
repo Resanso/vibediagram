@@ -1,7 +1,7 @@
 import { toPng } from "html-to-image";
-import { getNodesBounds, Node } from "@xyflow/react";
+import { getNodesBounds, Node, Edge } from "@xyflow/react";
 
-export async function exportToPng(nodes: Node[], elementId?: string) {
+export async function exportToPng(nodes: Node[], elementId?: string, edges?: Edge[]) {
   try {
     const element = document.querySelector(".react-flow__viewport") as HTMLElement;
 
@@ -16,6 +16,14 @@ export async function exportToPng(nodes: Node[], elementId?: string) {
     }
 
     if (nodesToExport.length === 0) return;
+
+    // Filter edges if exporting a specific element (group)
+    const nodeIds = new Set(nodesToExport.map(n => n.id));
+    let edgesToExport: Set<string> = new Set();
+    if (elementId && edges) {
+      const validEdges = edges.filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
+      edgesToExport = new Set(validEdges.map(e => e.id));
+    }
 
     const bounds = getNodesBounds(nodesToExport);
     
@@ -42,6 +50,26 @@ export async function exportToPng(nodes: Node[], elementId?: string) {
       el.style.fill = '#ffffff';
     });
 
+    // Also force edge paths to be visible, as CSS variables for stroke can fail in html-to-image
+    const edgePaths = element.querySelectorAll<SVGPathElement>('.react-flow__edge-path');
+    const originalStrokes = Array.from(edgePaths).map(el => el.getAttribute('stroke'));
+    const originalStrokeWidths = Array.from(edgePaths).map(el => el.getAttribute('stroke-width'));
+    
+    edgePaths.forEach(el => {
+      // Use a standard gray color for edges if we can't compute it
+      el.setAttribute('stroke', '#b1b1b7'); 
+      el.setAttribute('stroke-width', '2');
+      el.style.stroke = '#b1b1b7';
+      el.style.strokeWidth = '2px';
+    });
+
+    const markers = document.querySelectorAll<SVGPathElement>('marker path');
+    const originalMarkerFills = Array.from(markers).map(el => el.getAttribute('fill'));
+    markers.forEach(el => {
+      el.setAttribute('fill', '#b1b1b7');
+      el.style.fill = '#b1b1b7';
+    });
+
     const dataUrl = await toPng(element, {
       backgroundColor: "#ffffff",
       quality: 1,
@@ -53,6 +81,25 @@ export async function exportToPng(nodes: Node[], elementId?: string) {
         height: `${imageHeight}px`,
         transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
         transformOrigin: "top left",
+      },
+      filter: (node: HTMLElement) => {
+        // Hide handles and export buttons from the final image
+        if (node?.classList?.contains('react-flow__handle')) return false;
+        if (node?.classList?.contains('export-btn')) return false;
+
+        // Hide nodes that are not part of the export
+        if (elementId && node?.classList?.contains('react-flow__node')) {
+          const id = node.getAttribute('data-id');
+          if (id && !nodeIds.has(id)) return false;
+        }
+
+        // Hide edges that are not connecting the exported nodes
+        if (elementId && node?.classList?.contains('react-flow__edge')) {
+          const id = node.getAttribute('data-id');
+          if (id && !edgesToExport.has(id)) return false;
+        }
+
+        return true;
       }
     });
 
@@ -63,6 +110,23 @@ export async function exportToPng(nodes: Node[], elementId?: string) {
       else el.removeAttribute('fill');
       
       el.style.fill = originalInlineFills[index];
+    });
+
+    edgePaths.forEach((el, index) => {
+      const origStroke = originalStrokes[index];
+      if (origStroke) el.setAttribute('stroke', origStroke); else el.removeAttribute('stroke');
+      
+      const origStrokeWidth = originalStrokeWidths[index];
+      if (origStrokeWidth) el.setAttribute('stroke-width', origStrokeWidth); else el.removeAttribute('stroke-width');
+
+      el.style.stroke = '';
+      el.style.strokeWidth = '';
+    });
+
+    markers.forEach((el, index) => {
+      const origFill = originalMarkerFills[index];
+      if (origFill) el.setAttribute('fill', origFill); else el.removeAttribute('fill');
+      el.style.fill = '';
     });
 
     const link = document.createElement("a");
