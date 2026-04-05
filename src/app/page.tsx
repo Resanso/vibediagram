@@ -117,9 +117,11 @@ Backend API -> Database : Query Data`);
             const engine = e.target.value as 'vibe-flow' | 'mermaid';
             setActiveEngine(engine);
             setIsCanvasInteraction(false);
-            if (engine === 'vibe-flow') {
+            
+            // Only overwrite if the textarea is empty or currently holding the EXACT default template of the other engine
+            if (engine === 'vibe-flow' && dsl.trim() === 'sequenceDiagram\\n  Alice->>John: Hello John, how are you?') {
               setDsl('Node A -> Node B');
-            } else {
+            } else if (engine === 'mermaid' && (dsl.trim() === 'Node A -> Node B' || dsl.startsWith('Group Sistem'))) {
               setDsl('sequenceDiagram\\n  Alice->>John: Hello John, how are you?');
             }
           }}
