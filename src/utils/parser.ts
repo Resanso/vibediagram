@@ -45,6 +45,7 @@ export function parseDsl(input: string) {
         id: `${source}-${target}`,
         source,
         target,
+        type: 'custom',
         label: label || undefined,
       });
     } else {

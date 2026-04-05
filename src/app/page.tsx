@@ -7,10 +7,14 @@ import { parseDsl } from '@/utils/parser';
 import { getLayoutedElements } from '@/utils/layout';
 import CustomNode from '@/components/CustomNode';
 import GroupNode from '@/components/GroupNode';
+import CustomEdge from '@/components/CustomEdge';
 import { serializeToDsl } from '@/utils/serializer';
 
 export default function Home() {
   const nodeTypes = useMemo(() => ({ custom: CustomNode, groupNode: GroupNode }), []);
+  const edgeTypes = useMemo(() => ({ custom: CustomEdge }), []);
+
+  const [layoutDir, setLayoutDir] = useState('TB');
 
   const [dsl, setDsl] = useState(`Group Sistem {
   User [user]
@@ -40,12 +44,20 @@ Backend API -> Database : Query Data`);
   const onConnect = useCallback(
     (params: Connection) => {
       setIsCanvasInteraction(true);
-      setEdges((eds) => addEdge(params, eds));
+      setEdges((eds) => addEdge({ ...params, type: 'custom' }, eds));
     },
     []
   );
 
   const onNodeDragStop = useCallback(() => {
+    setIsCanvasInteraction(true);
+  }, []);
+
+  const onNodesDelete = useCallback(() => {
+    setIsCanvasInteraction(true);
+  }, []);
+
+  const onEdgesDelete = useCallback(() => {
     setIsCanvasInteraction(true);
   }, []);
 
@@ -66,11 +78,12 @@ Backend API -> Database : Query Data`);
       id: e.id,
       source: e.source,
       target: e.target,
+      type: 'custom',
       label: e.label
     }));
     
     // @ts-ignore
-    const layouted = getLayoutedElements(parsed.nodes, flowEdges, 'TB');
+    const layouted = getLayoutedElements(parsed.nodes, flowEdges, layoutDir);
     
     setNodes(layouted.nodes);
     setEdges(layouted.edges);
@@ -89,20 +102,41 @@ Backend API -> Database : Query Data`);
           }}
           placeholder="Enter your custom DSL here..."
         />
-        <button 
-          onClick={handleApplyDsl}
-          className="bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 font-bold"
-        >
-          Render Diagram
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={handleApplyDsl}
+            className="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 font-bold"
+          >
+            Render Diagram
+          </button>
+          <select 
+            value={layoutDir}
+            onChange={(e) => {
+              const newDir = e.target.value;
+              setLayoutDir(newDir);
+              setIsCanvasInteraction(false);
+              // @ts-ignore
+              const layouted = getLayoutedElements(nodes, edges, newDir);
+              setNodes(layouted.nodes);
+              setEdges(layouted.edges);
+            }}
+            className="bg-white border border-slate-300 rounded px-2 cursor-pointer outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm"
+          >
+            <option value="TB">Top - Bottom</option>
+            <option value="LR">Left - Right</option>
+          </select>
+        </div>
       </div>
       <div className="w-2/3 h-full bg-slate-50 relative" onPointerDown={() => setIsCanvasInteraction(true)}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
+          onNodesDelete={onNodesDelete}
+          onEdgesDelete={onEdgesDelete}
           onConnect={onConnect}
           onNodeDragStop={onNodeDragStop}
           fitView
