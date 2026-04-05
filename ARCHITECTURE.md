@@ -1,16 +1,21 @@
 # Project Context: Custom Diagram-as-Code Engine
 
 ## 1. Project Overview
-Aplikasi ini adalah sebuah web-based *Diagram-as-Code* (DaC) generator. Sistem akan menerima input teks dengan sintaks khusus (Custom DSL), mem-parsing teks tersebut, menghitung tata letak (*layout*) secara otomatis, dan merendernya menjadi diagram interaktif.
+Aplikasi ini adalah sebuah web-based *Diagram-as-Code* (DaC) generator dengan arsitektur **Pluggable Architecture**. Sistem akan menerima input teks dengan sintaks modular, lalu merendernya ke berbagai jenis mesin diagram yang didukung, sehingga sangat _scalable_ untuk berbagai kasus standar UML maupun Cloud Architecture.
 
-## 2. Tech Stack
+## 2. Pluggable Architecture & Engines
+Aplikasi ini beroperasi sebagai *Container* yang dapat memuat bermacam-macam mesin *rendering*:
+1. **Vibe Engine (Architecture):** Menggunakan `@xyflow/react` (React Flow) yang dipadukan dengan Auto-Layout Dagre. Dioptimalkan untuk menggambar topologi arsitektur infrastruktur IT berbantuan DSL kustom yang intuitif.
+2. **Mermaid Engine:** Secara mulus mem-parsing formasi DSL `mermaid.js` untuk merender Sequence Diagram, Entity Relationship Diagram (ERD), Activity diagram, dll.
+
+## 3. Tech Stack
 - **Framework:** Next.js (App Router)
 - **Styling:** Tailwind CSS
 - **Diagram Renderer:** `@xyflow/react` (React Flow)
 - **Auto-Layout Engine:** `dagre` (untuk menghitung posisi X dan Y secara hirarkis)
 - **Language:** JavaScript/TypeScript (pilih salah satu sesuai inisialisasi awal proyek)
 
-## 3. Architecture & Data Flow
+## 4. Architecture & Data Flow
 Aplikasi menggunakan pola alur data linear:
 `Text Input (DSL)` -> `Parser Function` -> `Dagre Layout Engine` -> `React Flow Canvas`
 
@@ -18,9 +23,9 @@ Aplikasi menggunakan pola alur data linear:
 1. **Editor UI:** Kolom teks (textarea) di sisi kiri layar tempat pengguna mengetik DSL.
 2. **Parser (utils/parser.js):** Fungsi murni (*pure function*) yang memecah string baris per baris. Mengubah teks DSL menjadi array `nodes` dan `edges` dasar.
 3. **Layout Engine (utils/layout.js):** Fungsi yang menerima array dari Parser, lalu menggunakan algoritma `dagre` (graph `TB` / Top to Bottom atau `LR` / Left to Right) untuk menyisipkan koordinat `position: {x, y}` ke setiap node.
-4. **Canvas UI:** Komponen React Flow di sisi kanan layar yang menerima data akhir dan merendernya.
+4. **Canvas UI:** Komponen React Flow atau Mermaid Renderer di sisi kanan layar yang menerima data akhir dan merendernya secara kondisional.
 
-## 4. Custom DSL Syntax Specification
+## 5. Custom DSL Syntax Specification
 Parser harus dirancang untuk membaca aturan sintaks berikut:
 
 ### Aturan Dasar
@@ -45,7 +50,7 @@ API Gateway -> Database : Mengambil data
 Output JSON React Flow yang diharapkan:
 { id: "Client App-API Gateway", source: "Client App", target: "API Gateway", label: "Mengambil data" }
 
-## 5. Rules for AI Copilot
+## 6. Rules for AI Copilot
 Saat membantu menulis kode untuk proyek ini, AI Copilot WAJIB mematuhi aturan berikut:
 1. **Gunakan @xyflow/react:** Jangan gunakan versi lama (`reactflow` atau `react-flow-renderer`).
 2. **Jangan Hitung Koordinat:** AI tidak boleh mencoba menghitung posisi `x` dan `y` secara manual di dalam Parser. Serahkan semua perhitungan posisi pada fungsi Layout (`dagre`).
