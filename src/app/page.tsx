@@ -1,17 +1,21 @@
 "use client";
 
-import { useState, useCallback, useMemo } from 'react';
-import { ReactFlow, Controls, Background, applyNodeChanges, applyEdgeChanges, NodeChange, EdgeChange, Node, Edge } from '@xyflow/react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { ReactFlow, Controls, Background, applyNodeChanges, applyEdgeChanges, NodeChange, EdgeChange, Node, Edge, addEdge, Connection } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { parseDsl } from '@/utils/parser';
 import { getLayoutedElements } from '@/utils/layout';
 import CustomNode from '@/components/CustomNode';
+import GroupNode from '@/components/GroupNode';
+import { serializeToDsl } from '@/utils/serializer';
 
 export default function Home() {
-  const nodeTypes = useMemo(() => ({ custom: CustomNode }), []);
+  const nodeTypes = useMemo(() => ({ custom: CustomNode, groupNode: GroupNode }), []);
 
-  const [dsl, setDsl] = useState(`User [user]
-Web Interface [monitor]
+  const [dsl, setDsl] = useState(`Group Sistem {
+  User [user]
+  Web Interface [monitor]
+}
 Backend API [server]
 Database [database]
 
@@ -21,6 +25,7 @@ Backend API -> Database : Query Data`);
   
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
+  const [isCanvasInteraction, setIsCanvasInteraction] = useState(false);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -32,7 +37,28 @@ Backend API -> Database : Query Data`);
     []
   );
 
+  const onConnect = useCallback(
+    (params: Connection) => {
+      setIsCanvasInteraction(true);
+      setEdges((eds) => addEdge(params, eds));
+    },
+    []
+  );
+
+  const onNodeDragStop = useCallback(() => {
+    setIsCanvasInteraction(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isCanvasInteraction) return;
+    if (nodes.length === 0 && edges.length === 0) return;
+
+    const newDsl = serializeToDsl(nodes, edges);
+    setDsl(prev => (prev !== newDsl ? newDsl : prev));
+  }, [nodes, edges, isCanvasInteraction]);
+
   const handleApplyDsl = () => {
+    setIsCanvasInteraction(false);
     const parsed = parseDsl(dsl);
     
     const flowEdges: Edge[] = parsed.edges.map(e => ({
@@ -57,7 +83,10 @@ Backend API -> Database : Query Data`);
         <textarea 
           className="flex-1 w-full p-2 border border-slate-300 rounded-md font-mono text-sm"
           value={dsl}
-          onChange={(e) => setDsl(e.target.value)}
+          onChange={(e) => {
+            setIsCanvasInteraction(false);
+            setDsl(e.target.value);
+          }}
           placeholder="Enter your custom DSL here..."
         />
         <button 
@@ -67,13 +96,15 @@ Backend API -> Database : Query Data`);
           Render Diagram
         </button>
       </div>
-      <div className="w-2/3 h-full bg-slate-50 relative">
+      <div className="w-2/3 h-full bg-slate-50 relative" onPointerDown={() => setIsCanvasInteraction(true)}>
         <ReactFlow
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onNodeDragStop={onNodeDragStop}
           fitView
         >
           <Background />
