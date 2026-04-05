@@ -30,6 +30,7 @@ Backend API -> Database : Query Data`);
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [isCanvasInteraction, setIsCanvasInteraction] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -69,25 +70,35 @@ Backend API -> Database : Query Data`);
     setDsl(prev => (prev !== newDsl ? newDsl : prev));
   }, [nodes, edges, isCanvasInteraction]);
 
-  const handleApplyDsl = () => {
-    setIsCanvasInteraction(false);
-    const parsed = parseDsl(dsl);
-    
-    const flowEdges: Edge[] = parsed.edges.map(e => ({
-      ...e,
-      id: e.id,
-      source: e.source,
-      target: e.target,
-      type: 'custom',
-      label: e.label
-    }));
-    
-    // @ts-ignore
-    const layouted = getLayoutedElements(parsed.nodes, flowEdges, layoutDir);
-    
-    setNodes(layouted.nodes);
-    setEdges(layouted.edges);
-  };
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (isCanvasInteraction) return;
+
+      try {
+        const parsed = parseDsl(dsl);
+        
+        const flowEdges: Edge[] = parsed.edges.map(e => ({
+          ...e,
+          id: e.id,
+          source: e.source,
+          target: e.target,
+          type: 'custom',
+          label: e.label
+        }));
+        
+        // @ts-ignore
+        const layouted = getLayoutedElements(parsed.nodes, flowEdges, layoutDir);
+        
+        setNodes(layouted.nodes);
+        setEdges(layouted.edges);
+        setError(null);
+      } catch (err) {
+        setError("Syntax error: Silakan periksa kembali DSL Anda.");
+      }
+    }, 600);
+
+    return () => clearTimeout(timeoutId);
+  }, [dsl, layoutDir, isCanvasInteraction]);
 
   return (
     <div className="h-screen w-full flex text-black">
@@ -102,13 +113,12 @@ Backend API -> Database : Query Data`);
           }}
           placeholder="Enter your custom DSL here..."
         />
-        <div className="flex gap-2">
-          <button 
-            onClick={handleApplyDsl}
-            className="flex-1 bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 font-bold"
-          >
-            Render Diagram
-          </button>
+        {error ? (
+          <p className="text-xs text-red-500 font-medium">{error}</p>
+        ) : (
+          <p className="text-xs text-green-600 font-medium">✓ Auto-saved & rendered</p>
+        )}
+        <div className="flex gap-2 justify-end">
           <select 
             value={layoutDir}
             onChange={(e) => {
