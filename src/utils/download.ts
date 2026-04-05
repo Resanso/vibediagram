@@ -47,6 +47,7 @@ export async function exportToPng(nodes: Node[], elementId?: string) {
         width: `${imageWidth}px`,
         height: `${imageHeight}px`,
         transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
+        transformOrigin: 'top left',
       }
     });
 
