@@ -7,7 +7,14 @@ import { parseDsl } from '@/utils/parser';
 import { getLayoutedElements } from '@/utils/layout';
 
 export default function Home() {
-  const [dsl, setDsl] = useState("Client App [smartphone]\nDatabase [database]\nClient App -> Database : Read data");
+  const [dsl, setDsl] = useState(`User [user]
+Web Interface [monitor]
+Backend API [server]
+Database [database]
+
+User -> Web Interface : Mengakses web
+Web Interface -> Backend API : HTTP Request
+Backend API -> Database : Query Data`);
   
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
